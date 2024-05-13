@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Example</title>
+
+    <link rel="stylesheet" href="./highlight/default.min.css">
+
+    <script src="./highlight/highlight.min.js"></script>
+
+
+    <script src="./marked/marked.min.js"></script>
+
+</head>
+
+<body>
+<div class="title">
+    <span> 软件部测试，后端大模型使用claude2。计划接入gpt4</span>
+</div>
+<div id="chat-container">
+    <div id="chat-messages">
+    </div>
+</div>
+<div class="message-input-wrapper">
+    <textarea type="text" id="message-input" placeholder="请输入您的内容"></textarea>
+    <div id="send-button">发送</div>
+</div>
+
+<script>
+    console.log(window)
+    // 获取需要的DOM元素
+    const chatMessages = document.getElementById("chat-messages");
+    const messageInput = document.getElementById("message-input");
+    const sendButton = document.getElementById("send-button");
+
+
+
+    // formateMarkdown("# Hello World")
+    // 定义发送消息的函数
+    function sendMessage() {
+        const message = messageInput.value;
+        if (message.trim() === "") {
+            return;
+        }
+
+        // 创建一个新的消息元素，并添加到聊天框
+        let messageElement = `<div class="flex-right">
+                <div class="time-remark-wrapper mr10">
+                    <span class="time">${getNowTime()}</span>
+                    <div class="message user-message" style="display: inline-block;">
+                        ${message}
+                    </div>
+                </div>
+                <img src="./images/avatar.jpeg" class="avatar"/>
+            </div>`
+        chatMessages.innerHTML += messageElement;
+
+        messageInput.value = "";
+
+        // 发送消息到服务器
+        sendToServer(message);
+    }
+
+
+    function getNowTime() {
+        var currentTime = new Date();
+        var year = currentTime.getFullYear();
+        var month = currentTime.getMonth() + 1; // 月份从 0 开始，所以要加 1
+        var day = currentTime.getDate();
+        var hours = currentTime.getHours();
+        var minutes = currentTime.getMinutes();
+        var seconds = currentTime.getSeconds();
+
+        // 格式化为两位数
+        if (month < 10) {
+            month = '0' + month;
+        }
+        if (day < 10) {
+            day = '0' + day;
+        }
+        if (hours < 10) {
+            hours = '0' + hours;
+        }
+        if (minutes < 10) {
+            minutes = '0' + minutes;
+        }
+        if (seconds < 10) {
+            seconds = '0' + seconds;
+        }
+
+        var formattedTime = year + '-' + month + '-' + day + ' ' + hours + ':' + minutes + ':' + seconds;
+        return formattedTime;
+    }
+
+
+    function formateMarkdown(message) {
+
+        var renderer = new marked.Renderer();
+        renderer.code = function (code, language) {
+            var highlightedCode = hljs.highlightAuto(code).value;
+            return '<pre><code class="hljs ' + language + '">' + highlightedCode + '</code></pre>';
+        };
+
+        marked.setOptions({
+            renderer: renderer,
+            gfm: true,
+            tables: true,
+            breaks: true,
+            pedantic: false,
+            sanitize: false,
+            smartLists: true,
+            smartypants: false,
+        })
+
+        var parsedHTML = marked.parse(message);
+        let messageHTML = ` <div class="flex-left">
+                <img src="./images/chatGPT.png" class="avatar mr10"/>
+                <div class="time-remark-wrapper">
+                    <span class="time">${getNowTime()}</span>
+                    <div class="message bot-message" style="display: inline-block;">
+                        ${parsedHTML}
+                    </div>
+                </div>
+
+            </div>`
+        chatMessages.innerHTML += messageHTML;
+
+    }
+
+    // 定义发送消息到服务器的函数
+    function sendToServer(message) {
+        // formateMarkdown(
+        //     '好的,下面是用javascript实现冒泡排序的代码:\n\n```js\nfunction bubbleSort(arr) {\n  const len = arr.length;\n  for (let i = 0; i &lt; len; i++) {\n    for (let j = 0; j &lt; len - 1 - i; j++) {\n      if (arr[j] &gt; arr[j+1]) {\n        // 相邻元素两两对比\n        [arr[j], arr[j+1]] = [arr[j+1], arr[j]]; // 交换两个元素\n      } \n    }\n  }\n  return arr;\n}\n\n// 测试\nconst arr = [5, 4, 3, 2, 1];\nconsole.log(bubbleSort(arr)); // [1, 2, 3, 4, 5]\n```\n\n主要思路是:\n\n1. 从第一个元素开始,依次与后面的元素进行两两比较\n2. 如果顺序相反,则交换两个元素的位置\n3. 一轮比较下来,可以保证最后一个元素是最大的\n4. 下一轮继续比较到倒数第二个元素,以此类推\n5. 直到数组有序\n\n冒泡排序的时间复杂度为 O(n^2),是一种简单但不是很高效的排序算法。"'
+        // )
+
+        // 使用AJAX发送POST请求
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", "localhost:8080/test", true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+                try {
+                    // 解析服务器响应
+                    const response = JSON.parse(xhr.responseText);
+                    // 提取服务器回复的消息
+                    const botMessage = response.msg;
+                    // 创建回复消息的元素，并添加到聊天框
+                    formateMarkdown(botMessage);
+
+                } catch (error) {
+                    console.error("Error parsing JSON response:", error);
+                }
+            }
+        };
+        xhr.send(JSON.stringify({
+            message
+        }));
+    }
+
+    // 绑定发送按钮的点击事件
+    sendButton.addEventListener("click", sendMessage);
+</script>
+
+<style>
+    body {
+        font-size: 14px;
+    }
+
+    html,
+    body {
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .time-remark-wrapper {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .mr10 {
+        margin-right: 10px;
+    }
+
+    .time {
+        color: rgb(174, 192, 215);
+        font-size: 12px;
+        margin-bottom: 5px;
+    }
+
+    .title {
+        display: flex;
+        justify-content: center;
+        text-align: center;
+        font-size: 16px;
+        padding: 15px;
+
+    }
+
+    #chat-messages {
+        padding: 30px;
+    }
+
+    #chat-container {
+        width: 1000px;
+        margin: 0 auto;
+        border-width: 1px;
+        border-style: solid;
+        border-color: #e5e7eb;
+        border-radius: 8px;
+        height: calc(100% - 150px);
+        box-sizing: content-box;
+        position: relative;
+        overflow: auto;
+    }
+
+    .message-input-wrapper {
+        position: fixed;
+        bottom: 20px;
+        display: flex;
+        align-items: center;
+        max-width: 1280px;
+        margin: 0 auto;
+        width: 1000px;
+        /* background-color: #fff; */
+    }
+
+    .flex-right .time-remark-wrapper {
+        align-items: flex-end;
+    }
+
+    .message {
+        padding: 8px;
+        border-radius: 8px;
+
+    }
+
+    textarea:focus {
+        outline: none;
+    }
+
+    #message-input {
+        border: 1px solid #e5e7eb;
+        border-top-left-radius: 4px;
+        border-bottom-left-radius: 4px;
+        padding: 10px;
+        flex: 1;
+
+    }
+
+    #message-input>textarea {
+        flex: 1;
+    }
+
+    .user-message {
+        background-color: rgb(210, 249, 209);
+        text-align: right;
+        margin-bottom: 20px;
+        padding: 10px 15px;
+    }
+
+    .avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+    }
+
+    .flex-right {
+        display: flex;
+        justify-content: end;
+    }
+
+    .flex-left {
+        display: flex;
+        justify-content: start;
+    }
+
+    #send-button {
+        background: #0c7a43;
+        color: #fff;
+        padding: 16px 15px;
+        border-top-right-radius: 4px;
+        border-bottom-right-radius: 4px;
+        cursor: pointer;
+
+    }
+
+    .bot-message {
+        background-color: rgb(244, 246, 248);
+        margin-bottom: 20px;
+        padding: 10px 15px;
+    }
+
+    .hljs {
+        background: #fff;
+        border-radius: 8px;
+    }
+</style>
+</body>
+
+</html>
